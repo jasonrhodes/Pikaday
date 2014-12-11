@@ -410,15 +410,16 @@
             }) +
 
             '<td>:</td>' +
-            renderTimePicker(60, mm, 'pika-select-minute', function(i) { if (i < 10) return "0" + i; return i }) +
+            renderTimePicker(60, mm, 'pika-select-minute', function(i) { if (i < 10) return "0" + i; return i });
 
-            // Added this block to create an am/pm select box with 2 options:
-            // <option value='0'>am</option>
-            // <option value='1'>pm</option>
-            // Using this helper function takes care of handling the selectbox for you
-            renderTimePicker(2, ampm, 'pika-select-ampm', function (i) {
-                return i === 0 ? 'am' : 'pm';
-            });
+            // Using some spans with an active class now
+            var am_class = '', pm_class = '';
+            if (ampm === 'am') {
+                am_class = 'active';
+            } else {
+                pm_class = 'active';
+            }
+            to_return += '<td class="ampm-toggle"><span data-value="am" class="' + am_class + '">am</span><span data-value="pm" class="' + pm_class + '">pm</span></td>';
 
         if (opts.showSeconds) {
             to_return += '<td>:</td>' +
@@ -506,9 +507,9 @@
             else if (hasClass(target, 'pika-select-hour')) {
                 // Slight change here to account for am is 0, pm is 1
                 // Get the pika-select-ampm element we created with renderTimePicker
-                var element = document.querySelector('.pika-select-ampm');
+                var element = document.querySelector('.ampm-toggle .active');
                 // If that element's value is 1, it's PM
-                if (element.value == 1) {
+                if (element.dataset.value === 'pm') {
                     // Set time but first convert target.value to a number, then add 12
                     self.setTime(parseInt(target.value, 10) + 12);
                 } else {
@@ -521,17 +522,38 @@
             else if (hasClass(target, 'pika-select-second')) {
                 self.setTime(null, null, target.value);
             }
-            // Need to re-calculate time if am/pm value changes, too
-            // This is copying from above, with different references
-            else if (hasClass(target, 'pika-select-ampm')) {
-                var hours = document.querySelector('.pika-select-hour');
-                if (target.value == 1) {
-                    self.setTime(parseInt(hours.value, 10) + 12);
-                } else {
-                    self.setTime(hours.value);
-                }
-            }
         };
+
+        // This is now necessary to handle the click event on those am/pm spans.
+        // It gets added elsewhere using addEvent, but this function defines what
+        // happens on those clicks
+        self._onAmPmChange = function(e)
+        {
+            // Most of this is copied from other events in this lib
+            e = e || window.event;
+            var target = e.target || e.srcElement;
+            var hours = document.querySelector('.pika-select-hour');
+            if (!target || target.dataset.value === undefined || hasClass(target, 'active')) {
+                return;
+            }
+
+            // target.dataset.value looks at the 'data-value' attribute
+            if (target.dataset.value === 'pm') {
+                self.setTime(parseInt(hours.value, 10) + 12);
+            } else {
+                self.setTime(hours.value);
+            }
+
+            // This keeps the picker from closing
+            e.stopPropagation();
+
+            // Clever trick for looping over the return list of elements from
+            // querySelectorAll, so we can toggle each one's 'active' state
+            [].forEach.call(document.querySelectorAll('.pika-select-ampm span'), function (span) {
+                span.classList.toggle('active');
+            });
+
+        }
 
         self._onInputChange = function(e)
         {
@@ -603,6 +625,9 @@
 
         addEvent(self.el, 'mousedown', self._onMouseDown, true);
         addEvent(self.el, 'change', self._onChange);
+
+        // Add the am/pm click event, delegating from the body element
+        addEvent(document.querySelector('body'), 'click', self._onAmPmChange);
 
         if (opts.field) {
             if (opts.container) {
@@ -959,12 +984,12 @@
             if (opts.showTime) {
                 // Here I get the hours, set a default value of 0 for ampm. (0 is am, 1 is pm)
                 var hours = this._d ? this._d.getHours() : 0;
-                var ampm = 0;
+                var ampm = 'am';
                 // If hours is 16, say, you want hours to be 4
                 // You also want ampm to be 'pm', which means setting it to 1
                 if (hours >= 12) {
                     hours = hours - 12;
-                    ampm = 1;
+                    ampm = 'pm';
                 }
                 // Pass the modified hours and the ampm value to renderTime
                 html += '<div>' +
@@ -1133,6 +1158,7 @@
             this.hide();
             removeEvent(this.el, 'mousedown', this._onMouseDown, true);
             removeEvent(this.el, 'change', this._onChange);
+            removeEvent(document.querySelector('body'), 'click', this._onAmPmChange)
             if (this._o.field) {
                 removeEvent(this._o.field, 'change', this._onInputChange);
                 if (this._o.bound) {
