@@ -504,13 +504,32 @@
                 self.gotoYear(target.value);
             }
             else if (hasClass(target, 'pika-select-hour')) {
-                self.setTime(target.value);
+                // Slight change here to account for am is 0, pm is 1
+                // Get the pika-select-ampm element we created with renderTimePicker
+                var element = document.querySelector('.pika-select-ampm');
+                // If that element's value is 1, it's PM
+                if (element.value == 1) {
+                    // Set time but first convert target.value to a number, then add 12
+                    self.setTime(parseInt(target.value, 10) + 12);
+                } else {
+                    self.setTime(target.value);
+                }
             }
             else if (hasClass(target, 'pika-select-minute')) {
                 self.setTime(null, target.value);
             }
             else if (hasClass(target, 'pika-select-second')) {
                 self.setTime(null, null, target.value);
+            }
+            // Need to re-calculate time if am/pm value changes, too
+            // This is copying from above, with different references
+            else if (hasClass(target, 'pika-select-ampm')) {
+                var hours = document.querySelector('.pika-select-hour');
+                if (target.value == 1) {
+                    self.setTime(parseInt(hours.value, 10) + 12);
+                } else {
+                    self.setTime(hours.value);
+                }
             }
         };
 
