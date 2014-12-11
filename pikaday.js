@@ -957,11 +957,22 @@
             }
 
             if (opts.showTime) {
+                // Here I get the hours, set a default value of 0 for ampm. (0 is am, 1 is pm)
+                var hours = this._d ? this._d.getHours() : 0;
+                var ampm = 0;
+                // If hours is 16, say, you want hours to be 4
+                // You also want ampm to be 'pm', which means setting it to 1
+                if (hours >= 12) {
+                    hours = hours - 12;
+                    ampm = 1;
+                }
+                // Pass the modified hours and the ampm value to renderTime
                 html += '<div>' +
                         renderTime(
-                            this._d ? this._d.getHours() : 0,
+                            hours,
                             this._d ? this._d.getMinutes() : 0,
                             this._d ? this._d.getSeconds() : 0,
+                            ampm,
                             opts)
                     + '</div>';
             }
