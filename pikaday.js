@@ -399,25 +399,26 @@
         return to_return;
     },
 
-    renderTime = function(hh, mm, ss, opts)
+    // Accept the 'ampm' parameter here so you can set it
+    renderTime = function(hh, mm, ss, ampm, opts)
     {
         var to_return = '<table cellpadding="0" cellspacing="0" class="pika-time"><tbody><tr>' +
-            renderTimePicker(24, hh, 'pika-select-hour', function(i) {
-                if (opts.use24hour) {
-                    return i;
-                } else {
-                    var to_return = (i%12) + (i<12 ? ' AM' : ' PM');
-                    if (to_return == '0 AM') {
-                        return opts.i18n.midnight;
-                    } else if (to_return == '0 PM') {
-                        return opts.i18n.noon;
-                    } else {
-                        return to_return;
-                    }
-                }
+            // I changed this in a simple way but yours is better to account for '01', '02'
+            renderTimePicker(12, hh, 'pika-select-hour', function(i) {
+                if (i === 0) { i = 12; }
+                return i;
             }) +
+
             '<td>:</td>' +
-            renderTimePicker(60, mm, 'pika-select-minute', function(i) { if (i < 10) return "0" + i; return i });
+            renderTimePicker(60, mm, 'pika-select-minute', function(i) { if (i < 10) return "0" + i; return i }) +
+
+            // Added this block to create an am/pm select box with 2 options:
+            // <option value='0'>am</option>
+            // <option value='1'>pm</option>
+            // Using this helper function takes care of handling the selectbox for you
+            renderTimePicker(2, ampm, 'pika-select-ampm', function (i) {
+                return i === 0 ? 'am' : 'pm';
+            });
 
         if (opts.showSeconds) {
             to_return += '<td>:</td>' +
